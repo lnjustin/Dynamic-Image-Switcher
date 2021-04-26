@@ -1,0 +1,27 @@
+{
+  "packageName": "Dynamic Image Switcher",
+  "author": "Justin Leonard",
+  "version": "1.0",
+  "minimumHEVersion": "1.0",
+  "dateReleased": "2012-04-26",
+  "apps": [
+    {
+      "id": "18ddd408-d655-4f53-a8fe-05c1e3ecd926",
+      "name": "Dynamic Image Switcher",
+      "namespace": "lnjustin",
+      "location": "https://raw.githubusercontent.com/lnjustin/Dynamic-Image-Switcher/main/DynamicImageSwitcher.groovy",
+      "required": true,
+      "oauth": true,
+      "primary": false
+    }
+  ],
+  "drivers": [
+    {
+      "id": "157e2c28-fecc-4c85-bf2c-7f848a2b877c",
+      "name": "Dynamic Image URL Device",
+      "namespace": "lnjustin",
+      "location": "https://raw.githubusercontent.com/lnjustin/Dynamic-Image-Switcher/main/DynamicImageURLDevice.groovy",
+      "required": true
+    }
+  ]
+}
