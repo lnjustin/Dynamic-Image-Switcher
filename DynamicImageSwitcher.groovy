@@ -15,8 +15,9 @@
  *
  *  Change History:
  *
- *    Date        Who            What
- *    ----        ---            ----
+ *    Date        What
+ *    ----        ----
+ *    2021-05-11  Fixed issue when schedule configuration incomplete
  */
 
 import java.text.SimpleDateFormat
