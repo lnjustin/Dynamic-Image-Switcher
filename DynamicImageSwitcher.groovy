@@ -312,15 +312,17 @@ def getTimeExpression(time) {
 def configureScheduleUpdates() {
     if (scheduleCount > 0) {
         for (def i = 0; i < scheduleCount; i++) {
-            def daysOfWeek = getDayOfWeekExpression(settings["daysOfWeek${i}"])
+            if (settings["daysOfWeek${i}"] && settings["startTime${i}"] && settings["stopTime${i}"]) {
+                def daysOfWeek = getDayOfWeekExpression(settings["daysOfWeek${i}"])
             
-            def startTime = getTimeExpression(settings["startTime${i}"])
-            def startSchedule = "01 " + startTime + " ? * " + daysOfWeek
-            schedule(startSchedule, updateSchedules, [overwrite: false]) 
+                def startTime = getTimeExpression(settings["startTime${i}"])
+                def startSchedule = "01 " + startTime + " ? * " + daysOfWeek
+                schedule(startSchedule, updateSchedules, [overwrite: false]) 
             
-            def stopTime = getTimeExpression(settings["stopTime${i}"])
-            def stopSchedule = "01 " + stopTime + " ? * " + daysOfWeek
-            schedule(stopSchedule, updateSchedules, [overwrite: false]) 
+                def stopTime = getTimeExpression(settings["stopTime${i}"])
+                def stopSchedule = "01 " + stopTime + " ? * " + daysOfWeek
+               schedule(stopSchedule, updateSchedules, [overwrite: false]) 
+            }
         }
     }
 }
