@@ -323,6 +323,7 @@ def configureScheduleUpdates() {
                 def stopSchedule = "01 " + stopTime + " ? * " + daysOfWeek
                schedule(stopSchedule, updateSchedules, [overwrite: false]) 
             }
+            else log.warn "Schedule Number ${i} has incomplete configuration."
         }
     }
 }
