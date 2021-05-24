@@ -1,9 +1,9 @@
 {
   "packageName": "Dynamic Image Switcher",
   "author": "Justin Leonard",
-  "version": "1.0.1",
-  "minimumHEVersion": "1.0.1",
-  "dateReleased": "2021-05-11",
+  "version": "1.0.2",
+  "minimumHEVersion": "1.0.2",
+  "dateReleased": "2021-05-24",
   "apps": [
     {
       "id": "18ddd408-d655-4f53-a8fe-05c1e3ecd926",
