@@ -15,9 +15,8 @@
  *
  *  Change History:
  *
- *    Date        What
- *    ----        ----
- *    2021-05-11  Fixed issue when schedule configuration incomplete
+ *    Date        Who            What
+ *    ----        ---            ----
  */
 
 import java.text.SimpleDateFormat
@@ -47,6 +46,7 @@ preferences {
 	page name: "apiAccessPage", title: "Calendarific API Access", install: false, nextPage: "mainPage"
 	page name: "ConfigureHolidays", title: "Configure Holidays", install: false, nextPage: "mainPage"
     page name: "DefineHolidays", title: "Define Holidays", install: false, nextPage: "ConfigureHolidays"
+    page name: "ConfigureSwitches", title: "Configure Switches", install: false, nextPage: "mainPage"
     page name: "ConfigureSchedule", title: "Configure Schedule", install: false, nextPage: "mainPage"
     page name: "ConfigureLocationModes", title: "Configure Location Modes", install: false, nextPage: "mainPage"
     page name: "ConfigureWeather", title: "Configure Weather", install: false, nextPage: "mainPage"
@@ -80,6 +80,7 @@ def mainPage() {
                 href(name: "apiAccessPage", title: getInterface("boldText", "Configure Calendarific API Access"), description: "API Access Required for Holiday Lookup", required: false, page: "apiAccessPage", image: (calAPIToken ? checkMark : xMark))
                 paragraph getInterface("header", " Setup")
                 href(name: "HolidayPage", title: getInterface("boldText", "Configure Holidays"), description: "Configure images for different holidays.", required: false, page: "ConfigureHolidays")
+                href(name: "SwitchesPage", title: getInterface("boldText", "Configure Switches"), description: "Configure images for different switches.", required: false, page: "ConfigureSwitches")
                 href(name: "SchedulePage", title: getInterface("boldText", "Configure Schedule"), description: "Configure images according to a schedule.", required: false, page: "ConfigureSchedule")
                 href(name: "ModePage", title: getInterface("boldText", "Configure Location Modes"), description: "Configure images for different location modes.", required: false, page: "ConfigureLocationModes")
                 href(name: "WeatherPage", title: getInterface("boldText", "Configure Weather"), description: "Configure images for different weather conditions and weather alerts.", required: false, page: "ConfigureWeather")               
@@ -401,6 +402,60 @@ def ConfigureLocationModes() {
     }
 }
 
+def ConfigureSwitches() {
+    dynamicPage(name: "ConfigureSwitches", title: "Configure Switches", nextPage:"mainPage", uninstall:false, install: false) {
+          section("") {
+              paragraph "Images defined for switches will be prioritized above scheduled images, location mode images, and weather condition images, but not weather alert images. The setting below configures whether or not images for switches will be prioritized over holiday images."
+              input(name: "prioritizeSwitchesOverHoliday", type: "bool", title: "Prioritize Switches Over Holidays?", required: true, defaultValue: false, submitOnChange:true)
+              input(name:"switches", type: "capability.switch", title: "Switches", description:"Select Switches for which to configure images",  required:false, multiple:true, submitOnChange: true)
+              if (switches) {
+                   input(name:"basePathForSwitchImages", type:"text", title: "Base Path for Switch Images", description: "Optional prefix common to the path for all switch images", required: false)                                          
+                    for (sw in switches) {
+                        input(name:"pathForSwitch_${sw.getName()}", type:"text", title: sw.getName(), description: "Path of Image to Display when 'ON'", required: false)                        
+                    }
+                }
+              else paragraph "No switches defined for which to configure images."
+          }
+    }
+}
+
+def getSwitchPriority() {
+    return prioritizeSwitchesOverHoliday != null ? prioritizeSwitchesOverHoliday : false
+}
+
+def areSwitchesConfigured() {
+    def areSwitchedConfigured = false
+    if (switches != null && switches.size() > 0) areSwitchedConfigured = true
+    return areSwitchedConfigured
+}
+
+def isSwitchActive() {
+    return getNumSwitchesActive() > 0 ? true : false 
+}
+
+def getNumSwitchesActive() {
+    def numSwitchesActive = 0
+    if (areSwitchesConfigured()) {
+        for (switchName in state.activeSwitches) {
+            if (settings["pathForSwitch_${switchName}"] != null) numSwitchesActive++
+        }
+    }
+    return numSwitchesActive    
+}
+
+def getAllActiveSwitchImages() {
+    def paths = []
+    for (switchName in state.activeSwitches) {
+        def path = getSwitchImage(switchName)
+        paths.add(path)
+    }
+    return paths
+}
+
+def getSwitchImage(switchName) {
+    return basePathForSwitchImages ? basePathForSwitchImages + settings["pathForSwitch_${switchName}"] : settings["pathForAlert_${switchName}"]
+}
+
 def areSeasonsConfigured() {
     def areseasonsConfiugred = false
     if (settings["imagesPerSeason"] && settings["seasonCount"] > 0) areseasonsConfiugred = true
@@ -602,6 +657,8 @@ def initialize() {
         setSchedules()
         configureScheduleUpdates()      
     }
+    setActiveSwitchState()
+    subscribe(settings["switches"], "switch", switchHandler)
     if (locationModes) {
         subscribe(location, "mode", handleModeChange) 
         state.mode = location.mode
@@ -638,6 +695,19 @@ def initialize() {
     }
     createChild()
     updateImage()
+}
+
+def switchHandler(evt) {
+    setActiveSwitchState()
+    updateImage()
+}
+
+def setActiveSwitchState() {
+    state.activeSwitches = []
+    for (sw in settings["switches"]) {
+        def value = sw.currentValue("switch")
+        if (value == "on") state.activeSwitches.add(sw.getName())
+    }    
 }
 
 def resetState() {
@@ -819,7 +889,7 @@ def getHolidayImage(holiday, custom=false) {
 }
 
 def getAllActiveHolidayImages(custom=false) {
-    def paths = null
+    def paths = []
     if (custom) {
         for (holiday in state.activeCustomHolidays) {
             def path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForCustomHoliday_${holiday}"] : settings["pathForCustomHoliday_${holiday}"]
@@ -848,7 +918,7 @@ def getScheduleImage(i) {
 }
 
 def getAllActiveScheduleImages() {
-    def paths = null
+    def paths = []
     for (schedule in state.activeSchedules) {
         def path = getScheduleImage(schedule)
         paths.add(path)
@@ -908,6 +978,18 @@ def rotateActiveScheduleImages() {
     def interval = intervalSetting*60
     runIn(interval, "rotateImages")    
 }
+
+
+def rotateActiveSwitchImages() {
+    state.previousImageIndex = -1
+    state.rotatingImages = []
+    def switchImages = getAllActiveSwitchImages()
+    state.rotatingImages.addAll(switchImages)
+    def intervalSetting = getMultiImageRotateInterval()
+    def interval = intervalSetting*60
+    runIn(interval, "rotateImages")    
+}
+
 def updateImage() {
     def image = null
     unschedule("rotateImages")
@@ -915,6 +997,13 @@ def updateImage() {
     if (isConfiguredAlertActive()) {
         logDebug("Displaying image for alert")
         image = getAlertImage(getHighestPriorityActiveAlert())
+    }
+    else if (getSwitchPriority() == true && isSwitchActive()) {
+        def numActiveSwitches = getNumSwitchesActive()
+        if (numActiveSwitches == 1) image = getSwitchImage(state.activeSwitches[0])
+        else if (numActivesSwitches > 1) {
+            rotateActiveSwitchImages()
+        }
     }
     else if (isConfiguredHoliday() && state.isNight && nightOverHoliday && isNightConfigured()) {
         logDebug("Displaying night image on holiday")
@@ -925,19 +1014,26 @@ def updateImage() {
         logDebug("Displaying image for holiday")
         // It's a holiday, and either it's daytime or its nightime but holiday images are prioritized over nighttime images --> display holiday image
         def numActiveHolidays = getNumActiveHolidays()
-        if (numActiveHolidays > 0) {
+        if (numActiveHolidays == 1) {
             if (state.activeHolidays.size() > 0) image = getHolidayImage(state.activeHolidays[0])
             else if (state.activeCustomHolidays.size() > 0) image = getHolidayImage(state.activeCustomHolidays[0], true)
         }
-        if (numActiveHolidays > 1) {
+        else if (numActiveHolidays > 1) {
             rotateActiveHolidayImages()
         }
     }
+    else if (getSwitchPriority() == false && isSwitchActive()) {
+        def numActiveSwitches = getNumSwitchesActive()
+        if (numActiveSwitches == 1) image = getSwitchImage(state.activeSwitches[0])
+        else if (numActivesSwitches > 1) {
+            rotateActiveSwitchImages()
+        }
+    }
     else if (anyScheduleActive()) {
-        if (state.activeSchedules.size() > 0) {
+        if (state.activeSchedules.size() == 1) {
             image = getScheduleImage(state.activeSchedules[0])
         }
-        if (state.activeSchedules.size() > 1) {
+        else if (state.activeSchedules.size() > 1) {
             rotateActiveScheduleImages()
         }
     }
