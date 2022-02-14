@@ -14,9 +14,10 @@
  *  for the specific language governing permissions and limitations under the License.
  *
  *  Change History:
- *
- *    Date        Who            What
- *    ----        ---            ----
+ * V1.0 - Initial Release
+ * V1.1 - Added SVG and PNG support; Added option to use custom device
+ * V1.2 - Added Image Color
+ * V1.3 - Fixed weather device type signature
  */
 
 import java.text.SimpleDateFormat
@@ -89,6 +90,7 @@ def mainPage() {
             }
             section (getInterface("header", " Settings")) {
                 input(name:"multiImageRotateInterval", type: "number", title: "Rotate Interval (mins) if Multiple Images Active", required:false, default: 30)
+                input("isImageColorConfigurable", "bool", title: "Specify Image Color?", defaultValue: false, displayDuringSetup: false, required: false)
  
 			    input("debugOutput", "bool", title: "Enable debug logging?", defaultValue: true, displayDuringSetup: false, required: false)
 		    }
@@ -101,6 +103,10 @@ def mainPage() {
 
 def getMultiImageRotateInterval() {
     return multiImageRotateInterval ? multiImageRotateInterval as Integer : 15
+}
+
+def getImageColorConfigurability() {
+    return isImageColorConfigurable ? isImageColorConfigurable : false
 }
 
 def footer() {
@@ -136,7 +142,8 @@ def ConfigureHolidays() {
              if (customHolidayCount > 0)
                 {
                     for (def i = 0; i < customHolidayCount; i++) {
-                        input(name:"pathForCustomHoliday_${i}", type:"text", title: settings["customHolidayName${i}"], description: "Image Path for " + settings["customHolidayName${i}"], required: false)                        
+                        input(name:"pathForCustomHoliday_${i}", type:"text", title: settings["customHolidayName${i}"], description: "Image Path for " + settings["customHolidayName${i}"], required: false, width: 9)
+                        if (getImageColorConfigurability() == true) input(name:"colorForCustomHoliday_${i}", type:"text", title: "Image Color", description: "Image Color for ${settings["customHolidayName${i}"]}", required: false, width: 3)
                     }
                 }
               else paragraph "No holidays defined for which to configure images."
@@ -146,7 +153,8 @@ def ConfigureHolidays() {
     
 def DisplayImageInputs(holidays) {
     for (holiday in holidays) {
-        input(name:"pathForHoliday_${holiday}", type:"text", title: holiday, description: "Image Path for ${holiday}", required: false)
+        input(name:"pathForHoliday_${holiday}", type:"text", title: holiday, description: "Image Path for ${holiday}", required: false, width: 9)
+        if (getImageColorConfigurability() == true) input(name:"colorForHoliday_${holiday}", type:"text", title: "Image Color", description: "Image Color for ${holiday}", required: false, width: 3)
     }
           
 }
@@ -228,7 +236,8 @@ def ConfigureSchedule() {
                         paragraph getInterface("line")
                         paragraph getInterface("header", "Schedule ${i+1}")
                         input(name:"scheduleName${i}", type:"text", title: "Schedule Name", required: true, width: 6)
-                        input(name:"pathForSchedule_${i}", type:"text", title: "Image Path", required: true) 
+                        input(name:"pathForSchedule_${i}", type:"text", title: "Image Path", required: true, width: 9) 
+                        if (getImageColorConfigurability() == true) input(name:"colorForSchedule_${i}", type:"text", title: "Image Color", description: "Image Color for" + settings["scheduleName${i}"], required: false, width: 3)
                         input(name:"daysOfWeek${i}", type: "enum", title: "Days of the Week", description:"Select Days of Week for which to configure images", options:daysOfWeekList, required:true, multiple:true, submitOnChange: true, width: 3)
                         input(name:"startTime${i}", type: "time", title: "Start Time", description: "Input time to start displaying image on selected days", required: true, width: 3)
                         input(name:"stopTime${i}", type: "time", title: "Stop Time", description: "Input time to stop displaying image on selected days", required: true, width: 3)
@@ -284,7 +293,7 @@ def setSchedules() {
 
 def updateSchedules() {
     state.activeSchedules = getActiveSchedules()
-    updateImage()
+    updateImageObject()
 }
 
 def getDayOfWeekExpression(daysOfWeek) {
@@ -394,7 +403,8 @@ def ConfigureLocationModes() {
               if (locationModes) {
                    input(name:"basePathForModeImages", type:"text", title: "Base Path for Location Mode Images", description: "Optional prefix common to the path for all location mode images", required: false)                                          
                     for (mode in locationModes) {
-                        input(name:"pathForMode_${mode}", type:"text", title: mode, description: "Image Path", required: false)                        
+                        input(name:"pathForMode_${mode}", type:"text", title: mode, description: "Image Path", required: false, width: 9)       
+                        if (getImageColorConfigurability() == true) input(name:"colorForMode_${mode}", type:"text", title: "Image Color", description: "Image Color for ${mode}", required: false, width: 3)
                     }
                 }
               else paragraph "No location modes defined for which to configure images."
@@ -411,7 +421,8 @@ def ConfigureSwitches() {
               if (switches) {
                    input(name:"basePathForSwitchImages", type:"text", title: "Base Path for Switch Images", description: "Optional prefix common to the path for all switch images", required: false)                                          
                     for (sw in switches) {
-                        input(name:"pathForSwitch_${sw.getName()}", type:"text", title: sw.getName(), description: "Path of Image to Display when 'ON'", required: false)                        
+                        input(name:"pathForSwitch_${sw.getName()}", type:"text", title: sw.getName(), description: "Path of Image to Display when 'ON'", required: false, width: 9)     
+                        if (getImageColorConfigurability() == true) input(name:"colorForSwitch_${sw.getName()}", type:"text", title: "Image Color", description: "Image Color for ${sw.getName()}", required: false, width: 3)
                     }
                 }
               else paragraph "No switches defined for which to configure images."
@@ -492,14 +503,17 @@ def ConfigureWeather() {
                    if (!areSeasonsConfigured() && !seperateNightWeather) {
                         for (condition in weatherConditions) {
                             def code = weatherMap[condition]
-                            input(name:"pathForWeather_${code}", type:"text", title: condition, description: "Image Path", required: false)                        
+                            input(name:"pathForWeather_${code}", type:"text", title: condition, description: "Image Path", required: false, width: 9) 
+                            if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}", type:"text", title: "Image Color", description: "Image Color for ${code}", required: false, width: 3)                            
                         }
                     }
                     else if (!areSeasonsConfigured() && seperateNightWeather) {
                         for (condition in weatherConditions) {
                             def code = weatherMap[condition]
-                            input(name:"pathForWeather_${code}_day", type:"text", title: getInterface("boldText", "Day: ") + condition, description: "Image Path", required: false, width: 6)   
-                            input(name:"pathForWeather_${code}_night", type:"text", title: getInterface("boldText", "Night: ") + condition, description: "Image Path", required: false, width: 6)   
+                            input(name:"pathForWeather_${code}_day", type:"text", title: getInterface("boldText", "Day: ") + condition, description: "Image Path", required: false, width: 9)   
+                            if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}_day", type:"text", title: "Image Color", description: "Image Color for ${code} Day", required: false, width: 3)                            
+                            input(name:"pathForWeather_${code}_night", type:"text", title: getInterface("boldText", "Night: ") + condition, description: "Image Path", required: false, width: 9)   
+                            if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}_night", type:"text", title: "Image Color", description: "Image Color for ${code} Night", required: false, width: 3)                            
                         }
                     }
                     else if (areSeasonsConfigured() && !seperateNightWeather) {
@@ -507,7 +521,9 @@ def ConfigureWeather() {
                             def code = weatherMap[condition]
                             for (i=1; i <= seasonCount; i++) {
                                 def widthForSeasons = 12 / seasonCount
+                                if (getImageColorConfigurability() == true) widthForSeasons = 9
                                 input(name:"pathForWeather_${code}_season${i}", type:"text", title: getInterface("boldText", settings["season${i}"] + ": ") + condition, description: "Image Path", required: false, width: widthForSeasons)   
+                                if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}_season${i}", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)                            
                             }
                         }
                     }
@@ -517,7 +533,9 @@ def ConfigureWeather() {
                             def code = weatherMap[condition]
                             for (i=1; i <= seasonCount; i++) {
                                 def widthForSeasons = 12 / seasonCount
+                                if (getImageColorConfigurability() == true) widthForSeasons = 9
                                 input(name:"pathForWeather_${code}_season${i}_day", type:"text", title: getInterface("boldText", settings["season${i}"] + ": ") + condition, description: "Image Path", required: false, width: widthForSeasons)   
+                                if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}_season${i}_day", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)                            
                             }
                         }
                         paragraph getInterface("subHeader", "Nighttime Weather")
@@ -525,7 +543,9 @@ def ConfigureWeather() {
                             def code = weatherMap[condition]
                             for (i=1; i <= seasonCount; i++) {
                                 def widthForSeasons = 12 / seasonCount
+                                if (getImageColorConfigurability() == true) widthForSeasons = 9
                                 input(name:"pathForWeather_${code}_season${i}_night", type:"text", title: getInterface("boldText", settings["season${i}"] + ": ") + condition, description: "Image Path", required: false, width: widthForSeasons)   
+                                if (getImageColorConfigurability() == true) input(name:"colorForWeather_${code}_season${i}_night", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)                            
                             }
                         }
                     }
@@ -533,7 +553,8 @@ def ConfigureWeather() {
             if (weatherAlerts) {
                 paragraph getInterface("header", "Configure Image Paths For Weather Alerts")
                 for (alert in weatherAlerts) {
-                    input(name:"pathForAlert_${alert}", type:"text", title: alert, description: "Image Path", required: false)                        
+                    input(name:"pathForAlert_${alert}", type:"text", title: alert, description: "Image Path", required: false, width: 9)                        
+                    if (getImageColorConfigurability() == true) input(name:"colorForAlert_${alert}", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)                            
                 }
             }
             if (!weatherConditions && !weatherAlerts) {
@@ -547,7 +568,7 @@ def ConfigureWeather() {
 def DefineWeatherConditions() {
     dynamicPage(name: "DefineWeatherConditions", title: "Define Weather Conditions", nextPage:"ConfigureWeather", uninstall:false, install: false) {
         section("") {
-            input name: "weatherDevice", type: "device.OpenWeatherMap-NWSAlertsWeatherDriver", title: "Open Weather Map Weather Device", submitOnChange: true, multiple: false, required: false
+            input name: "weatherDevice", type: "device.OpenWeatherMap-AlertsWeatherDriver", title: "Open Weather Map Weather Device", submitOnChange: true, multiple: false, required: false
             if (weatherDevice) {
                  input(name:"weatherType", type: "enum", title: "Current Conditions or Forecasted Conditions?", options:["current", "forecasted"], required:true, multiple:false)
                 input(name:"weatherConditions", type: "enum", title: "Weather Conditions for which to Configure Images", options:weatherList, required:true, multiple:true)
@@ -608,7 +629,8 @@ def ConfigureNighttime() {
               input(name:"nightHandling", type: "enum", title: "At nighttime...", options:["Do Nothing Different", "Use Specific Image", "Use Images per Moon Phase", "Use Nighttime Weather Images"], default: "Do Nothing Different", required:false, multiple:false, submitOnChange: true)
               input("nightOverHoliday", "bool", title: "Prioritize Nighttime Images over Holiday images?",defaultValue: false, displayDuringSetup: true, submitOnChange: false)
               if (nightHandling == "Use Specific Image") {
-                  input(name:"pathForNight", type:"text", title: "Nighttime Image", description: "Image Path", required: false, width: 12)   
+                  input(name:"pathForNight", type:"text", title: "Nighttime Image", description: "Image Path", required: false, width: 9)   
+                  if (getImageColorConfigurability() == true) input(name:"colorForNight", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)                            
               }
               else if (nightHandling == "Use Images per Moon Phase") {
 
@@ -616,14 +638,22 @@ def ConfigureNighttime() {
                   if (moonDevice) {
                       input(name:"basePathForMoonImages", type:"text", title: "Base Path for Moon Images", description: "Optional prefix common to the path for all moon images", required: false)                                          
 
-                      input(name:"pathForPhase_NewMoon", type:"text", title: "New Moon", description: "Image Path", required: false, width: 6)   
-                      input(name:"pathForPhase_WaxingCrescent", type:"text", title: "Waxing Crescent", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_FirstQuarter", type:"text", title: "First Quarter", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_WaxingGibbous", type:"text", title: "Waxing Gibbous", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_FullMoon", type:"text", title: "Full Moon", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_WaningGibbous", type:"text", title: "Waning Gibbous", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_LastQuarter", type:"text", title: "Last Quarter", description: "Image Path", required: false, width: 6) 
-                      input(name:"pathForPhase_WaningCrescent", type:"text", title: "Waning Crescent", description: "Image Path", required: false, width: 6)            
+                      input(name:"pathForPhase_NewMoon", type:"text", title: "New Moon", description: "Image Path", required: false, width: 9)   
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_NewMoon", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_WaxingCrescent", type:"text", title: "Waxing Crescent", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_WaxingCrescent", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_FirstQuarter", type:"text", title: "First Quarter", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_FirstQuarter", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_WaxingGibbous", type:"text", title: "Waxing Gibbous", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_WaxingGibbous", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_FullMoon", type:"text", title: "Full Moon", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_FullMoon", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_WaningGibbous", type:"text", title: "Waning Gibbous", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_WaningGibbous", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_LastQuarter", type:"text", title: "Last Quarter", description: "Image Path", required: false, width: 9) 
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_LastQuarter", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
+                      input(name:"pathForPhase_WaningCrescent", type:"text", title: "Waning Crescent", description: "Image Path", required: false, width: 9)  
+                      if (getImageColorConfigurability() == true) input(name:"colorForPhase_WaningCrescent", type:"text", title: "Image Color", description: "Image Color", required: false, width: 3)    
                   }
               }
           }
@@ -694,12 +724,12 @@ def initialize() {
         }
     }
     createChild()
-    updateImage()
+    updateImageObject()
 }
 
 def switchHandler(evt) {
     setActiveSwitchState()
-    updateImage()
+    updateImageObject()
 }
 
 def setActiveSwitchState() {
@@ -736,6 +766,15 @@ def getURLFromChild() {
     def child = getChildDevice("DynamicImageSwitcherDevice${app.id}")
     if (child) {
         return child.getImageURL() 
+    }
+    log.error "No Child Device Found"
+    return null
+}
+
+def getColorFromChild() {
+    def child = getChildDevice("DynamicImageSwitcherDevice${app.id}")
+    if (child) {
+        return child.getImageColor() 
     }
     log.error "No Child Device Found"
     return null
@@ -794,12 +833,12 @@ def getImage() {
 
 def handleModeChange(evt) {
     state.mode = evt.value
-    updateImage()
+    updateImageObject()
 }
 
 def weatherConditionHandler(evt) {
     state.weatherCode = evt.value
-    updateImage()
+    updateImageObject()
 }
 
 def isConfiguredAlertActive() {
@@ -830,7 +869,7 @@ def getHighestPriorityActiveAlert() {
 
 def weatherAlertHandler(evt) {
     state.activeAlerts = evt.value.toLowerCase()
-    updateImage()
+    updateImageObject()
 }
 
 def sunsetHandler(evt) {
@@ -839,13 +878,13 @@ def sunsetHandler(evt) {
     log.debug "In sunset handler"
     if (nightHandling && nightHandling == "Use Images per Moon Phase") setMoonPhase()
     state.isNight = true
-    updateImage()  
+    updateImageObject()  
 }
 
 def handleSunsetEvent() {
     if (nightHandling && nightHandling == "Use Images per Moon Phase") setMoonPhase()
     state.isNight = true
-    updateImage()    
+    updateImageObject()    
 }
 
 def sunriseHandler(evt) {
@@ -853,12 +892,12 @@ def sunriseHandler(evt) {
   //  schedule(sunriseTime, handleSunriseEvent)
     log.debug "In sunrise handler"
     state.isNight = false
-    updateImage()
+    updateImageObject()
 }
 
 def handleSunriseEvent() {
     state.isNight = false
-    updateImage()    
+    updateImageObject()    
 }
 
 def isConfiguredHoliday() {
@@ -877,53 +916,70 @@ def getNumActiveHolidays() {
     return state.activeHolidays.size() + state.activeCustomHolidays.size()
 }
 
-def getHolidayImage(holiday, custom=false) {
-    def path = null
+def getHolidayImageObject(holiday, custom=false) {
+    def imageObject = null
     if (custom) {
-        path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForCustomHoliday_${holiday}"] : settings["pathForCustomHoliday_${holiday}"]
+        def path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForCustomHoliday_${holiday}"] : settings["pathForCustomHoliday_${holiday}"]
+        def color = settings["colorForCustomHoliday_${holiday}"]
+        imageObject = [path: path, color: color]
     }
     else {
-        path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForHoliday_${holiday}"] : settings["pathForHoliday_${holiday}"]
+        def path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForHoliday_${holiday}"] : settings["pathForHoliday_${holiday}"]
+        def color = settings["colorForHoliday_${holiday}"]
+        imageObject = [path: path, color: color]
     }
-    return path
+    return imageObject
 }
 
-def getAllActiveHolidayImages(custom=false) {
-    def paths = []
+def getAllActiveHolidayImageObjects(custom=false) {
+    def imageObjects = []
     if (custom) {
         for (holiday in state.activeCustomHolidays) {
             def path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForCustomHoliday_${holiday}"] : settings["pathForCustomHoliday_${holiday}"]
-            paths.add(path)
+            def color = settings["colorForCustomHoliday_${holiday}"]
+            def imageObject = [path: path, color: color]
+            imageObjects.add(imageObject)
         }
     }
     else {
         for (holiday in state.activeHolidays) {
             def path = basePathForHolidayImages ? basePathForHolidayImages + settings["pathForHoliday_${holiday}"] : settings["pathForHoliday_${holiday}"]
-            paths.add(path)
+            def color = settings["colorForHoliday_${holiday}"]
+            def imageObject = [path: path, color: color]
+            imageObjects.add(imageObject)
         }
     }
     return paths    
 }
 
-def getAlertImage(alert) {
-    return basePathForWeatherImages ? basePathForWeatherImages + settings["pathForAlert_${alert}"] : settings["pathForAlert_${alert}"]
+def getAlertImageObject(alert) {
+    def imageObject = [path: null, color: null]
+    imageObject.path = basePathForWeatherImages ? basePathForWeatherImages + settings["pathForAlert_${alert}"] : settings["pathForAlert_${alert}"]
+    imageObject.color = settings["colorForAlert_${alert}"]
+    return imageObject
 }
 
-def getModeImage() {
-    return basePathForModeImages ? basePathForModeImages + settings["pathForMode_${state.mode}"] : settings["pathForMode_${state.mode}"]
+def getModeImageObject() {
+    def imageObject = [path: null, color: null]
+    imageObject.path = basePathForModeImages ? basePathForModeImages + settings["pathForMode_${state.mode}"] : settings["pathForMode_${state.mode}"]
+    imageObject.color = settings["colorForMode_${state.mode}"]
+    return imageObject    
 }
 
-def getScheduleImage(i) {
-    return basePathForScheduleImages ? basePathForScheduleImages + settings["pathForSchedule_${i}"] : settings["pathForSchedule_${i}"]
+def getScheduleImageObject(i) {
+    def imageObject = [path: null, color: null]
+    imageObject.path = basePathForScheduleImages ? basePathForScheduleImages + settings["pathForSchedule_${i}"] : settings["pathForSchedule_${i}"]
+    imageObject.color = settings["colorForSchedule_${i}"]
+    return imageObject    
 }
 
-def getAllActiveScheduleImages() {
-    def paths = []
+def getAllActiveScheduleImageObjects() {
+    def imageObjects = []
     for (schedule in state.activeSchedules) {
-        def path = getScheduleImage(schedule)
-        paths.add(path)
+        def imageObject = getScheduleImageObject(schedule)
+        imageObjects.add(imageObject)
     }
-    return paths
+    return imageObjects
 }
 
 def isConfiguredMode() {
@@ -946,142 +1002,144 @@ def isNightConfigured() {
     return isNightConfigured
 }
 
-def rotateImages(Map data) {
-    if (state.rotatingImages && state.rotatingImages.size > 0) {
+def rotateImageObjects(Map data) {
+    if (state.rotatingImageObjects && state.rotatingImageObjects.size > 0) {
         def nextImageIndex = state.previousImageIndex + 1
-        if (nextImageIndex > state.rotatingImages.size() - 1) nextImageIndex = 0
-        state.image = state.rotatingImages[nextImageIndex]
+        if (nextImageIndex > state.rotatingImageObjects.size() - 1) nextImageIndex = 0
+        state.imageObject = state.rotatingImageObjects[nextImageIndex]
         def intervalSetting = getMultiImageRotateInterval()
         def interval = intervalSetting*60
-        runIn(interval, "rotateImages")
+        runIn(interval, "rotateImageObjects")
     }
 }
 
-def rotateActiveHolidayImages() {
+def rotateActiveHolidayImageObjects() {
     state.previousImageIndex = -1
-    state.rotatingImages = []
-    def holidayImages = getAllActiveHolidayImages(false)
-    def customHolidayImages = getAllActiveHolidayImages(true)
-    state.rotatingImages.addAll(holidayImages)
-    state.rotatingImages.addAll(customHolidayImages)
+    state.rotatingImageObjects = []
+    def holidayImageObjects = getAllActiveHolidayImageObjects(false)
+    def customHolidayImageObjects = getAllActiveHolidayImageObjects(true)
+    state.rotatingImageObjects.addAll(holidayImageObjects)
+    state.rotatingImageObjects.addAll(customHolidayImageObjects)
     def intervalSetting = getMultiImageRotateInterval()
     def interval = intervalSetting*60
-    runIn(interval, "rotateImages")    
+    runIn(interval, "rotateImageObjects")    
 }
 
-def rotateActiveScheduleImages() {
+def rotateActiveScheduleImageObjects() {
     state.previousImageIndex = -1
-    state.rotatingImages = []
-    def scheduleImages = getAllActiveScheduleImages()
-    state.rotatingImages.addAll(scheduleImages)
+    state.rotatingImageObjects = []
+    def scheduleImageObjects = getAllActiveScheduleImageObjects()
+    state.rotatingImageObjects.addAll(scheduleImageObjects)
     def intervalSetting = getMultiImageRotateInterval()
     def interval = intervalSetting*60
-    runIn(interval, "rotateImages")    
+    runIn(interval, "rotateImageObjects")    
 }
 
 
-def rotateActiveSwitchImages() {
+def rotateActiveSwitchImageObjects() {
     state.previousImageIndex = -1
-    state.rotatingImages = []
-    def switchImages = getAllActiveSwitchImages()
-    state.rotatingImages.addAll(switchImages)
+    state.rotatingImageObjects = []
+    def switchImageObjects = getAllActiveSwitchImageObjects()
+    state.rotatingImageObjects.addAll(switchImageObjects)
     def intervalSetting = getMultiImageRotateInterval()
     def interval = intervalSetting*60
-    runIn(interval, "rotateImages")    
+    runIn(interval, "rotateImageObjects")    
 }
 
-def updateImage() {
-    def image = null
-    unschedule("rotateImages")
+def updateImageObject() {
+    def imageObject = [:]
+    unschedule("rotateImageObjects")
     
     if (isConfiguredAlertActive()) {
         logDebug("Displaying image for alert")
-        image = getAlertImage(getHighestPriorityActiveAlert())
+        imageObject = getAlertImageObject(getHighestPriorityActiveAlert())
     }
     else if (getSwitchPriority() == true && isSwitchActive()) {
         def numActiveSwitches = getNumSwitchesActive()
         if (numActiveSwitches == 1) image = getSwitchImage(state.activeSwitches[0])
         else if (numActivesSwitches > 1) {
-            rotateActiveSwitchImages()
+            rotateActiveSwitchImageObjects()
         }
     }
     else if (isConfiguredHoliday() && state.isNight && nightOverHoliday && isNightConfigured()) {
         logDebug("Displaying night image on holiday")
         // Would display holiday image, except that it's night and nighttime images are to be prioritized over holiday images --> display nighttime image
-        image = getNightImage()
+        imageObject = getNightImageObjects()
     }
     else if (isConfiguredHoliday() && (!state.isNight || !nightOverHoliday)) {
         logDebug("Displaying image for holiday")
         // It's a holiday, and either it's daytime or its nightime but holiday images are prioritized over nighttime images --> display holiday image
         def numActiveHolidays = getNumActiveHolidays()
         if (numActiveHolidays == 1) {
-            if (state.activeHolidays.size() > 0) image = getHolidayImage(state.activeHolidays[0])
-            else if (state.activeCustomHolidays.size() > 0) image = getHolidayImage(state.activeCustomHolidays[0], true)
+            if (state.activeHolidays.size() > 0) imageObject = getHolidayImageObject(state.activeHolidays[0])
+            else if (state.activeCustomHolidays.size() > 0) imageObject = getHolidayImageObject(state.activeCustomHolidays[0], true)
         }
         else if (numActiveHolidays > 1) {
-            rotateActiveHolidayImages()
+            rotateActiveHolidayImageObjects()
         }
     }
     else if (getSwitchPriority() == false && isSwitchActive()) {
         def numActiveSwitches = getNumSwitchesActive()
-        if (numActiveSwitches == 1) image = getSwitchImage(state.activeSwitches[0])
+        if (numActiveSwitches == 1) imageObject = getSwitchImageObject(state.activeSwitches[0])
         else if (numActivesSwitches > 1) {
-            rotateActiveSwitchImages()
+            rotateActiveSwitchImageObject()
         }
     }
     else if (anyScheduleActive()) {
         if (state.activeSchedules.size() == 1) {
-            image = getScheduleImage(state.activeSchedules[0])
+            imageObject = getScheduleImageObject(state.activeSchedules[0])
         }
         else if (state.activeSchedules.size() > 1) {
-            rotateActiveScheduleImages()
+            rotateActiveScheduleImageObjects()
         }
     }
     else if (state.isNight && isNightConfigured()) {
         logDebug("Displaying image for night")
         // nighttime and treating night differently --> display nighttime image
-        image = getNightImage()        
+        imageObject = getNightImageObject()        
     }
     else if (isConfiguredWeather() || isConfiguredMode()) {
         if (prioritizeModeOrWeather == "Location Mode") {
             logDebug("Displaying image for location mode")
             // display location mode image
-            image = getModeImage()
+            imageObject = getModeImageObject()
         }
         else if (prioritizeModeOrWeather == "Weather Conditions") {
             logDebug("Displaying image for weather conditions")
             // display weather condition image
-            image = getWeatherImage()
+            imageObject = getWeatherImageObject()
         }
     }
 
-    if (!image) {
+    if (!imageObject) {
          log.warn "No image for state. Reverting to default image if available."
-       if (pathForDefault) image = pathForDefault
+       if (pathForDefault) imageObject = [path: pathForDefault, color: null]
         else log.warn "No default image available. Image set to null."
     }
-    if (image) logDebug "Updating image to " + image
-    state.image = image
+    if (imageObject) logDebug "Updating image to " + imageObject
+    state.imageObject = imageObject
     def child = getChildDevice("DynamicImageSwitcherDevice${app.id}")
-    child.configureURL(image)
+    child.configureImageObject(imageObject)
 }
     
-def getNightImage() {
-    def retPath = null
+def getNightImageObject() {
+    def imaegObject = [:]
     if (nightHandling == "Use Specific Image") {
-        retPath = pathForNight
+        imaegObject = [path: pathForNight, color: colorForNight]
     }
     else if (nightHandling == "Use Images per Moon Phase") {
-        retPath = getMoonImage()
+        imaegObject = getMoonImageObject()
     }
     else if (nightHandling == "Use Nighttime Weather Images") {
-        retPath = getWeatherImage()
+        imaegObject = getWeatherImageObject()
     }
-    return retPath
+    return imaegObject
 }
 
-def getMoonImage() {
-    return basePathForMoonImages ? basePathForMoonImages + settings["pathForPhase_" + state.moonPhase] : settings["pathForPhase_" + state.moonPhase]
+def getMoonImageObject() {
+    def imageObject = [:]
+    imageObject.path = basePathForMoonImages ? basePathForMoonImages + settings["pathForPhase_" + state.moonPhase] : settings["pathForPhase_" + state.moonPhase]
+    imageObject.color = settings["colorForPhase_" + state.moonPhase]
 }
 
 def isConfiguredWeather() {
@@ -1113,15 +1171,17 @@ def translateConditionsToCodes(conditions) {
     }
     return codes
 }
-def getWeatherImage() {
-    def weatherImage = null
+def getWeatherImageObject() {
+    def weatherImageObject = [:]
     def weatherCodes = translateConditionsToCodes(weatherConditions)
     if (!areSeasonsConfigured() && !seperateNightWeather) {
         logDebug("No seasons configured. No separate nighttime weather configured.")
         for (code in weatherCodes) {
             if (state.weatherCode == code || state.weatherCode == "nt_" + code) {
                 logDebug("Setting image to ${code} image")
-                weatherImage = settings["pathForWeather_${code}"]                       
+                weatherImageObject.path = settings["pathForWeather_${code}"]     
+                weatherImageObject.color = settings["colorForWeather_${code}"] 
+                
             }
         }
     }
@@ -1131,13 +1191,15 @@ def getWeatherImage() {
             if (!state.isNight) {
                 if (state.weatherCode == code) {
                     logDebug("Setting image to ${code} daytime image")
-                    weatherImage = settings["pathForWeather_${code}_day"]   
+                    weatherImageObject.path = settings["pathForWeather_${code}_day"]   
+                    weatherImageObject.color = settings["colorForWeather_${code}_day"]  
                 }
             }
             else if (state.isNight) {
                 if (state.weatherCode == "nt_" + code) {
                     logDebug("Setting image to ${code} nighttime image")
-                    weatherImage = settings["pathForWeather_${code}_night"]
+                    weatherImageObject.path = settings["pathForWeather_${code}_night"]
+                    weatherImageObject.color = settings["colorForWeather_${code}_night"]
                 }
            }
         }
@@ -1147,7 +1209,8 @@ def getWeatherImage() {
         for (code in weatherCodes) {
             if (state.weatherCode == code || state.weatherCode == "nt_" + code) {
                 logDebug("Setting image to ${code} image")
-                weatherImage = settings["pathForWeather_${code}_season${state.season}"]
+                weatherImageObject.path = settings["pathForWeather_${code}_season${state.season}"]
+                weatherImageObject.color = settings["colorForWeather_${code}_season${state.season}"]
             }
         }
     }
@@ -1157,20 +1220,22 @@ def getWeatherImage() {
             if (!state.isNight) {
                 if (state.weatherCode == code) {
                     logDebug("Setting image to ${code} daytime image")
-                    weatherImage = settings["pathForWeather_${code}_season${state.season}_day"]   
+                    weatherImageObject.path = settings["pathForWeather_${code}_season${state.season}_day"] 
+                    weatherImageObject.color = settings["colorForWeather_${code}_season${state.season}_day"] 
                 }
             }
             else if (state.isNight) {
                 if (state.weatherCode == "nt_" + code) {
                     logDebug("Setting image to ${code} nighttime image")
-                    weatherImage = settings["pathForWeather_${code}_season${state.season}_night"]
+                    weatherImageObject.path = settings["pathForWeather_${code}_season${state.season}_night"]
+                    weatherImageObject.color = settings["colorForWeather_${code}_season${state.season}_night"]
                 }
             }
         }
     }
-    if (weatherImage == null) return null
-    
-    return basePathForWeatherImages ? basePathForWeatherImages + weatherImage : weatherImage
+    if (weatherImageObject == [:]) return null
+    if (weatherImageObject.path != null) weatherImageObject.path = basePathForWeatherImages ? basePathForWeatherImages + weatherImageObject.path : weatherImageObject.path
+    return weatherImageObject
 }
 
 def updateSeason() {
@@ -1248,12 +1313,12 @@ def setDayOfWeek() {
 
 def updateDayOfWeek() {
     setDayOfWeek()
-    updateImage()
+    updateImageObject()
 }
 
 def updateHoliday() {
     setHoliday()
-    updateImage()
+    updateImageObject()
 }
 
 def setHoliday()
