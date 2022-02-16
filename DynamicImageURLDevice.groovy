@@ -19,6 +19,7 @@
  * V1.2 - Added Image Color
  * V1.3 - Fixed weather device type signature
  * V1.4 - Fixed issue with device
+ * V1.5 - Fixed null pointer exception and custom holidays UI
 **/
 
 metadata
