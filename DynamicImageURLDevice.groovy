@@ -16,6 +16,8 @@
  *
  * V1.0 - Initial Release
  * V1.1 - Added SVG and PNG support; Added option to use custom device
+ * V1.2 - Added Image Color
+ * V1.3 - Fixed weather device type signature
 **/
 
 metadata
@@ -25,8 +27,10 @@ metadata
         capability "Actuator"
         
         attribute "imageURL", "string"
+        attribute "imageColor", "string"
         
         command "configureURL", ["string"]
+        command "configureColor", ["string"]
     }
 }
 
@@ -65,9 +69,17 @@ def configure()
     refresh()
 }
 
-def configureURL(url) {
-    sendEvent(name: "imageURL", value: url)
-    state.imageURL = url
+def configureImageObject(imageObject) {
+    sendEvent(name: "imageURL", value: imageObject.path)
+    state.imageURL = imageObject.path
+    if (imageObject.color == null) {
+        sendEvent(name: "imageColor", value: "No Color Specified")
+        state.imageColor = "No Color Specified"
+    }
+    else {
+        sendEvent(name: "imageColor", value: imageObject.color)
+        state.imageColor = imageObject.color
+    }    
 }
 
 def refresh()
@@ -77,6 +89,10 @@ def refresh()
 
 def getImageURL()
 {
-    log.trace "Returning image URL from Child"
     return state.imageURL
+}
+
+def getImageColor() 
+{
+    return state.imageColor    
 }
