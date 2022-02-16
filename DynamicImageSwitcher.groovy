@@ -19,6 +19,7 @@
  * V1.2 - Added Image Color
  * V1.3 - Fixed weather device type signature
  * V1.4 - Fixed issue with device
+ * V1.5 - Fixed null pointer exception and custom holidays UI
  */
 
 import java.text.SimpleDateFormat
@@ -140,7 +141,7 @@ def ConfigureHolidays() {
               if (calReligious) DisplayImageInputs(calReligious)
               if (calObservances) DisplayImageInputs(calObservances)
               
-             if (customHolidayCount > 0)
+             if (customHolidays && customHolidayCount > 0)
                 {
                     for (def i = 0; i < customHolidayCount; i++) {
                         input(name:"pathForCustomHoliday_${i}", type:"text", title: settings["customHolidayName${i}"], description: "Image Path for " + settings["customHolidayName${i}"], required: false, width: 9)
@@ -272,7 +273,7 @@ def isScheduleConfigured() {
 
 def anyScheduleActive() {
     def scheduleActive = false
-    if (state.activeSchedules.size() > 0) {
+    if (state.activeSchedules != null && state.activeSchedules.size() > 0) {
         scheduleActive = true            
     }
     return scheduleActive
