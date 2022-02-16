@@ -18,6 +18,7 @@
  * V1.1 - Added SVG and PNG support; Added option to use custom device
  * V1.2 - Added Image Color
  * V1.3 - Fixed weather device type signature
+ * V1.4 - Fixed issue with device
  */
 
 import java.text.SimpleDateFormat
