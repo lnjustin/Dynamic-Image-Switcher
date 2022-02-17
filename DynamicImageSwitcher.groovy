@@ -20,6 +20,7 @@
  * V1.3 - Fixed weather device type signature
  * V1.4 - Fixed issue with device
  * V1.5 - Fixed null pointer exception and custom holidays UI
+ * V1.6 - Reduced API calls
  */
 
 import java.text.SimpleDateFormat
@@ -168,7 +169,7 @@ def areHolidaysConfigured() {
 }
 
 def DefineHolidays() {
-	getHolidays()
+	if (!areHolidaysInState()) getHolidays()
     dynamicPage(name: "DefineHolidays", title: "Define Holidays", nextPage:"ConfigureHolidays", uninstall:false, install: false) {
         section("") {
 			input(name:"calNational", type: "enum", title: "National Holidays", options:state.nationalHolidays, required:false, multiple:true)
@@ -481,7 +482,7 @@ def ConfigureWeather() {
               href(name: "DefineWeatherConditions", title: getInterface("boldText", "Define Weather Conditions"), description: "Define for what weather conditions to configure images.", required: false, page: "DefineWeatherConditions", image: (weatherConditions ? checkMark : xMark))
               href(name: "DefineWeatherAlerts", title: getInterface("boldText", "Define Weather Alerts"), description: "Define for what weather alerts to configure images.", required: false, page: "DefineWeatherAlerts", image: (weatherAlerts ? checkMark : xMark))
                        
-              href(name: "DefineSeasons", title: getInterface("boldText", "Define Seasons"), description: "Define whether to configure weather images per season.", required: false, page: "DefineSeasons", image: (areSeasonsConfigured ? checkMark : xMark))
+              href(name: "DefineSeasons", title: getInterface("boldText", "Define Seasons"), description: "Define whether to configure weather images per season.", required: false, page: "DefineSeasons", image: (areSeasonsConfigured() ? checkMark : xMark))
               input(name:"prioritizeModeOrWeather", type: "enum", title: "Prioritize Location Mode or Weather Conditions?", options:["Location Mode", "Weather Conditions"], required:true, multiple:false)
               input(name:"seperateNightWeather", type:"bool", title: "Define Separate Images for Weather at Night?", required: true, default: false, submitOnChange: true, width: 9)
               if (seperateNightWeather) {
@@ -681,7 +682,7 @@ def uninstalled() {
 
 def initialize() {
     if (areHolidaysConfigured()) {
-	    getHolidays()
+	    if (!areHolidaysInState()) getHolidays()
         setHoliday()
 	    schedule("01 00 00 ? * *", updateHoliday)	    
     }
@@ -1421,6 +1422,14 @@ def getHolidays()
 		state.observanceHolidays = extractHolidays(result.data.response.holidays)
 		state.observanceHolidaysList = extractHolidayDetails(result.data.response.holidays)
 	}
+}
+
+def areHolidaysInState() {
+    def inState = true
+    if (state.nationalHolidays == null || state.nationalHolidays == [:]) inState = false
+    if (state.religiousHolidays == null || state.religiousHolidays == [:]) inState = false
+    if (state.observanceHolidays == null || state.observanceHolidays == [:]) inState = false
+    return inState
 }
 
 def sendApiRequest(type, method)
