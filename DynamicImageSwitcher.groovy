@@ -21,6 +21,7 @@
  * V1.4 - Fixed issue with device
  * V1.5 - Fixed null pointer exception and custom holidays UI
  * V1.6 - Reduced API calls
+ * V1.7 - Added Option to Manually Update Holidays
  */
 
 import java.text.SimpleDateFormat
@@ -94,6 +95,7 @@ def mainPage() {
             section (getInterface("header", " Settings")) {
                 input(name:"multiImageRotateInterval", type: "number", title: "Rotate Interval (mins) if Multiple Images Active", required:false, default: 30)
                 input("isImageColorConfigurable", "bool", title: "Specify Image Color?", defaultValue: false, displayDuringSetup: false, required: false)
+                input("updateHolidaysOnConfigure", "bool", title: "Update Holidays When Configure App?", defaultValue: false, displayDuringSetup: false, required: false)
  
 			    input("debugOutput", "bool", title: "Enable debug logging?", defaultValue: true, displayDuringSetup: false, required: false)
 		    }
@@ -682,7 +684,7 @@ def uninstalled() {
 
 def initialize() {
     if (areHolidaysConfigured()) {
-	    if (!areHolidaysInState()) getHolidays()
+	    if (!areHolidaysInState() || updateHolidaysOnConfigure == true) getHolidays()
         setHoliday()
 	    schedule("01 00 00 ? * *", updateHoliday)	    
     }
