@@ -21,6 +21,7 @@
  * V1.4 - Fixed issue with device
  * V1.5 - Fixed null pointer exception and custom holidays UI
  * V1.6 - Reduced API calls
+ * V1.7 - Added Option to Manually Update Holidays
 **/
 
 metadata
