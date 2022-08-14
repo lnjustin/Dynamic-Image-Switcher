@@ -22,6 +22,8 @@
  * V1.5 - Fixed null pointer exception and custom holidays UI
  * V1.6 - Reduced API calls
  * V1.7 - Added Option to Manually Update Holidays
+ * V1.8 - Bug Fixes
+ * V1.9 - Expanded selection options for open weather map device
  */
 
 import java.text.SimpleDateFormat
@@ -573,8 +575,9 @@ def ConfigureWeather() {
 def DefineWeatherConditions() {
     dynamicPage(name: "DefineWeatherConditions", title: "Define Weather Conditions", nextPage:"ConfigureWeather", uninstall:false, install: false) {
         section("") {
-            input name: "weatherDevice", type: "device.OpenWeatherMap-AlertsWeatherDriver", title: "Open Weather Map Weather Device", submitOnChange: true, multiple: false, required: false
+            input name: "weatherDevice", type: "capability.sensor", title: "Open Weather Map Weather Device", submitOnChange: true, multiple: false, required: false
             if (weatherDevice) {
+                if (!weatherDevice.hasAttribute("condition_code")) paragraph "<b>WARNING</b> Selected Device lacks the 'condition_code' attribute. Please make sure you have selected an Open Weather Map Weather Device"
                  input(name:"weatherType", type: "enum", title: "Current Conditions or Forecasted Conditions?", options:["current", "forecasted"], required:true, multiple:false)
                 input(name:"weatherConditions", type: "enum", title: "Weather Conditions for which to Configure Images", options:weatherList, required:true, multiple:true)
             }
@@ -1245,7 +1248,7 @@ def getWeatherImageObject() {
 
 def updateSeason() {
     setSeason()
-    updateImage()
+    updateImageObject()
 }
 
 def setSeason() {
